@@ -57,10 +57,10 @@ void main() async {
     createFile("lib/utils/constants/network_constants.dart");
     createFolder("lib/widgets");
     createFile("lib/widgets/verified_badged.dart");
-    createFolder("scr/my_app");
-    createFile("scr/my_app/my_app.dart");
+    createFolder("lib/src/my_app");
+    createFile("lib/src/my_app/my_app.dart");
     createFile(
-      "lib/dependency_requirement.txt",
+      "dependency_requirement.txt",
       content: "flutter_bloc\nequatable\ngo_router\ndartz\nget_it",
     );
 
@@ -75,6 +75,8 @@ void createFolder(String path) {
   if (!dir.existsSync()) {
     dir.createSync(recursive: true);
     print("Created folder: $path");
+  } else {
+    print("Folder already exists, skipping: $path");
   }
 }
 
@@ -84,6 +86,8 @@ void createFile(String path, {String content = ""}) {
     file.createSync(recursive: true);
     file.writeAsStringSync(content);
     print("Created file: $path");
+  } else {
+    print("File already exists, skipping: $path");
   }
 }
 
