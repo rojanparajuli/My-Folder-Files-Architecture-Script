@@ -1,10 +1,11 @@
 import 'dart:io';
 
 void main() async {
-  print("Starting Dart BLoC Project Structure Setup...");
+  print(" Starting Dart BLoC Project Structure Setup...\n");
+
   final Directory libDir = Directory("lib");
   if (!libDir.existsSync()) {
-    print("lib folder not found. Script terminated.");
+    print(" lib folder not found. Script terminated.");
     exit(1);
   }
 
@@ -59,14 +60,23 @@ void main() async {
     createFile("lib/widgets/verified_badged.dart");
     createFolder("lib/src/my_app");
     createFile("lib/src/my_app/my_app.dart");
+    createFolder("assets/images");
+    createFolder("assets/icons");
+    createFolder("assets/fonts");
+    createFolder("assets/lottie");
+    createFolder("assets/videos");
+    createFolder("assets/audio");
+    createFolder("assets/animations");
     createFile(
       "dependency_requirement.txt",
       content: "flutter_bloc\nequatable\ngo_router\ndartz\nget_it",
     );
+    migrateMyAppClassToMyAppFolder();
+    setupWidgetTest();
 
-    print("All folders & files were created successfully!");
+    print(" All folders & files were created successfully!\n");
   } catch (e) {
-    print("Something went wrong: $e");
+    print(" Something went wrong: $e");
   }
 }
 
@@ -76,7 +86,7 @@ void createFolder(String path) {
     dir.createSync(recursive: true);
     print("Created folder: $path");
   } else {
-    print("Folder already exists, skipping: $path");
+    print(" Folder already exists, skipping: $path");
   }
 }
 
@@ -106,5 +116,87 @@ void createWidgetFiles() {
 
   for (var file in files) {
     createFile("lib/common/widget/$file");
+  }
+}
+
+void migrateMyAppClassToMyAppFolder() {
+  final mainFile = File("lib/main.dart");
+
+  if (!mainFile.existsSync()) {
+    print("ERROR: main.dart not found in lib/. Cannot configure MyApp.\n");
+    return;
+  }
+
+  final myAppFile = File("lib/src/my_app/my_app.dart");
+  myAppFile.writeAsStringSync("""
+import 'package:flutter/material.dart';
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('My App'),
+        ),
+        body: const Center(
+          child: Text('Hello, world!'),
+        ),
+      ),
+    );
+  }
+}
+""");
+
+  print(" MyApp template created in lib/src/my_app/my_app.dart");
+
+  final projectName = Directory.current.path.split("/").last;
+
+  mainFile.writeAsStringSync("""
+import 'package:flutter/material.dart';
+import 'package:$projectName/src/my_app/my_app.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+""");
+
+  print(" main.dart updated to use clean MyApp\n");
+}
+
+void setupWidgetTest() {
+  final testFolder = Directory("test");
+  if (!testFolder.existsSync()) {
+    testFolder.createSync(recursive: true);
+    print("Created test folder: test/");
+  }
+
+  final widgetTestFile = File("test/widget_test.dart");
+  final projectName = Directory.current.path.split("/").last;
+
+  if (!widgetTestFile.existsSync()) {
+    widgetTestFile.writeAsStringSync("""
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:${projectName}/src/my_app/my_app.dart';
+
+void main() {
+  testWidgets('MyApp widget test', (WidgetTester tester) async {
+    // Build MyApp
+    await tester.pumpWidget(const MyApp());
+
+    // Verify if AppBar title is present
+    expect(find.text('My App'), findsOneWidget);
+
+    // Verify if 'Hello, world!' text is present
+    expect(find.text('Hello, world!'), findsOneWidget);
+  });
+}
+""");
+    print("Created test/widget_test.dart with MyApp import");
+  } else {
+    print("test/widget_test.dart already exists, skipping.");
   }
 }
