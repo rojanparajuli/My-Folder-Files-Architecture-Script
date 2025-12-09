@@ -1,0 +1,17 @@
+#!/bin/bash
+set -e
+
+echo "========================================="
+echo "rojanarch v1.0.0 installed successfully!"
+echo "========================================="
+echo ""
+echo "Usage:"
+echo "  1. Create a Flutter project:"
+echo "     flutter create my_project"
+echo "  2. Navigate to project:"
+echo "     cd my_project"
+echo "  3. Run the setup:"
+echo "     rojanarch"
+echo ""
+echo "For options: rojanarch --help"
+echo ""

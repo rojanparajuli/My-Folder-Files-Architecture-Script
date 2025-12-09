@@ -1,0 +1,11 @@
+Package: rojanarch
+Version: 1.0.0
+Section: devel
+Priority: optional
+Architecture: all
+Depends: bash, flutter, dart
+Maintainer: Rojan Parajuli <rojanparajuli13@gmail.com>
+Description: Enhanced Dart BLoC Project Structure Setup
+ A comprehensive script to set up Flutter/Dart projects with Clean Architecture
+ and BLoC pattern. Creates organized folder structure, adds dependencies,
+ and sets up development workflow.

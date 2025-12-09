@@ -1,0 +1,23 @@
+#!/bin/bash
+
+SCRIPT_DIR="/usr/share/rojanarch"
+SCRIPT_PATH="$SCRIPT_DIR/setup_flutter_project.sh"
+
+if [ ! -f "$SCRIPT_PATH" ]; then
+    echo "Error: Flutter project setup script not found at $SCRIPT_PATH"
+    exit 1
+fi
+
+# Check if running in a Flutter project directory
+if [ -f "pubspec.yaml" ]; then
+    bash "$SCRIPT_PATH" "$@"
+else
+    echo "Error: This doesn't appear to be a Flutter project directory."
+    echo "Please run this command from a Flutter project root directory (where pubspec.yaml exists)."
+    echo ""
+    echo "To create a new Flutter project first:"
+    echo "  flutter create my_project"
+    echo "  cd my_project"
+    echo "  rojanarch"
+    exit 1
+fi
