@@ -69,7 +69,7 @@ dart pub global activate --source path /path/to/rojanarch
 Push this folder to a repo, then anyone can run:
 
 ```bash
-dart pub global activate --source git https://github.com/rojanparajuli/My-Folder-Files-Architecture-Script
+dart pub global activate --source git https://github.com/you/rojanarch.git
 ```
 
 ### Option C — publish to pub.dev (the "just like any other CLI tool" option)
@@ -96,26 +96,41 @@ setup):
 After that, `rojanarch` (or `rojanarch.bat` on Windows) works from any
 terminal, in any folder, exactly like `flutter` or `dart` do.
 
-### Option D — a single native binary, no Dart SDK needed at all
+### Option D — one curl/iwr command, no Dart SDK, no git at all
 
-`dart compile exe` turns a Dart script into a standalone native
-executable for the OS you run it on:
+This is the "just like brew/deno's installer" option. `.github/workflows/release.yml`
+compiles `rojanarch` **and** all five `scaffolds/create_structure_*.dart`
+scripts into native binaries (`rojanarch`, `rojanarch_bloc`,
+`rojanarch_provider`, `rojanarch_riverpod`, `rojanarch_getx`,
+`rojanarch_signals`) for Linux, macOS, and Windows, and attaches a zip
+per OS to a GitHub Release whenever you push a version tag:
 
 ```bash
-dart compile exe bin/rojanarch.dart -o rojanarch        # macOS/Linux
-dart compile exe bin/rojanarch.dart -o rojanarch.exe     # Windows
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
-You'd build one binary per OS (a GitHub Actions matrix job — `ubuntu-
-latest` / `macos-latest` / `windows-latest` — is the usual way to
-produce all three from one push) and attach them to a GitHub Release,
-the way tools like `bun` or `deno` ship their installers. One caveat:
-`rojanarch.dart` currently delegates to the scaffold scripts via `dart
-run scaffolds/create_structure_<state>.dart`, so the target machine
-still needs `dart` on PATH for that step even if `rojanarch` itself is a
-compiled binary — Option A–C avoid that caveat entirely, which is why
-they're the simpler choice for a Flutter-focused tool (your users have
-Dart already).
+`bin/rojanarch.dart` looks for a sibling `rojanarch_<state>` binary next
+to itself first, and only falls back to `dart run scaffolds/*.dart` if
+one isn't found — so once these binaries ship together, the whole flow
+runs without Dart installed anywhere.
+
+Your users then run one line, with nothing pre-installed:
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/rojanparajuli/My-Folder-Files-Architecture-Script/main/install.sh | bash
+
+# Windows (PowerShell)
+iwr https://raw.githubusercontent.com/rojanparajuli/My-Folder-Files-Architecture-Script/main/install.ps1 -useb | iex
+```
+
+`install.sh`/`install.ps1` grab the right zip from your latest release,
+unpack it into `~/.local/bin` (or `%LOCALAPPDATA%\rojanarch` on
+Windows), and add that folder to PATH if it isn't already there. After
+that: `rojanarch`, from any folder, no Dart/Flutter SDK required for
+the CLI itself (they'll still need Flutter installed to actually build
+the app it scaffolds, obviously).
 
 ### Option E — the existing Debian package
 

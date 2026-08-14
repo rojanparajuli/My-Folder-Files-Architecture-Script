@@ -1,19 +1,6 @@
 import 'dart:io';
 
-/// Interactive entry point for rojanarch.
-///
-/// Flow:
-///   1. Ask which state management approach to use (or read --state=).
-///   2. If not already inside a Flutter project, ask for a project name
-///      (or read --name=) and run `flutter create`.
-///   3. cd into the project and delegate to the matching
-///      `scaffolds/create_structure_<state>.dart` script, forwarding any
-///      extra flags (--verbose, --ci, --overwrite, --dry-run, etc).
-///
-/// This file is the single thing users invoke (`rojanarch`); the five
-/// `create_structure_*.dart` files under scaffolds/ are unchanged and
-/// still work standalone via `dart run scaffolds/create_structure_x.dart`
-/// from inside a Flutter project, exactly as before.
+
 const _states = <String, _StateOption>{
   '1': _StateOption('bloc', 'BLoC', 'create_structure_bloc.dart'),
   '2': _StateOption('provider', 'Provider', 'create_structure_provider.dart'),
@@ -39,7 +26,6 @@ Future<void> main(List<String> rawArgs) async {
 
   _banner();
 
-  // ---- 1. Flutter SDK check -------------------------------------------------
   if (!await _commandExists('flutter')) {
     _err(
       "Flutter doesn't seem to be on your PATH. Install it from "
@@ -48,7 +34,6 @@ Future<void> main(List<String> rawArgs) async {
     exit(1);
   }
 
-  // ---- 2. Resolve or create the target project ------------------------------
   final alreadyInProject = File('pubspec.yaml').existsSync();
   Directory? createdDir;
 
@@ -73,7 +58,6 @@ Future<void> main(List<String> rawArgs) async {
     _info("\n📁 Existing Flutter project detected in this folder — reusing it.\n");
   }
 
-  // ---- 3. Ask which state management to scaffold -----------------------------
   final stateKey = _takeOption(args, '--state');
   final chosen = stateKey != null
       ? _states.values.firstWhere(
@@ -85,20 +69,29 @@ Future<void> main(List<String> rawArgs) async {
         )
       : _askStateManagement();
 
-  // ---- 4. Delegate to the matching scaffold script ---------------------------
-  final scriptPath = _resolveScaffoldPath(chosen.scriptFile);
-  if (!File(scriptPath).existsSync()) {
-    _err("Could not find scaffold script at $scriptPath");
-    exit(1);
-  }
-
   _info("\n🏗  Applying ${chosen.label} Clean Architecture structure...\n");
 
-  final scaffold = await Process.start(
-    'dart',
-    ['run', scriptPath, ...args],
-    mode: ProcessStartMode.inheritStdio,
-  );
+  
+  final exePath = _resolveCompiledScaffoldPath(chosen.key);
+  final Process scaffold;
+  if (exePath != null && File(exePath).existsSync()) {
+    scaffold = await Process.start(
+      exePath,
+      args,
+      mode: ProcessStartMode.inheritStdio,
+    );
+  } else {
+    final scriptPath = _resolveScaffoldPath(chosen.scriptFile);
+    if (!File(scriptPath).existsSync()) {
+      _err("Could not find scaffold script at $scriptPath");
+      exit(1);
+    }
+    scaffold = await Process.start(
+      'dart',
+      ['run', scriptPath, ...args],
+      mode: ProcessStartMode.inheritStdio,
+    );
+  }
   final scaffoldCode = await scaffold.exitCode;
 
   if (scaffoldCode != 0) {
@@ -113,7 +106,6 @@ Future<void> main(List<String> rawArgs) async {
   );
 }
 
-// ---- helpers ------------------------------------------------------------
 
 void _banner() => print('\n🧩 rojanarch — interactive Flutter architecture scaffolder\n');
 
@@ -123,8 +115,7 @@ void _err(String m) => stderr.writeln('\x1B[31m✗ $m\x1B[0m');
 
 bool _flag(List<String> args, String name) => args.remove(name);
 
-/// Pulls `--key=value` (or `--key value`) out of [args] and returns the
-/// value, removing the matched arg(s) so they aren't forwarded downstream.
+
 String? _takeOption(List<String> args, String key) {
   for (var i = 0; i < args.length; i++) {
     final a = args[i];
@@ -177,16 +168,22 @@ _StateOption _askStateManagement() {
   }
 }
 
-/// Resolves scaffolds/<file> relative to this script's own location, so
-/// it works whether run in-place with `dart run bin/rojanarch.dart`,
-/// via `dart pub global activate --source path .`, or from a globally
-/// activated git/pub.dev package — Platform.script always points at the
-/// real file on disk, and the scaffolds/ folder ships alongside bin/.
+
 String _resolveScaffoldPath(String fileName) {
   final scriptFile = File(Platform.script.toFilePath());
   final packageRoot = scriptFile.parent.parent; // bin/.. -> package root
   return '${packageRoot.path}${Platform.pathSeparator}scaffolds'
       '${Platform.pathSeparator}$fileName';
+}
+
+
+String? _resolveCompiledScaffoldPath(String stateKey) {
+  final selfDir = File(Platform.resolvedExecutable).parent;
+  final name = Platform.isWindows
+      ? 'rojanarch_$stateKey.exe'
+      : 'rojanarch_$stateKey';
+  final candidate = '${selfDir.path}${Platform.pathSeparator}$name';
+  return File(candidate).existsSync() ? candidate : null;
 }
 
 void _printHelp() {
