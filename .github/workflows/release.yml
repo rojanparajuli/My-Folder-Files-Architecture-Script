@@ -1,5 +1,4 @@
 name: release
-
 # Builds native, no-Dart-required binaries for Linux, macOS, and Windows
 # and attaches them to a GitHub Release whenever you push a version tag,
 # e.g.:
@@ -8,7 +7,6 @@ on:
   push:
     tags:
       - 'v*'
-
 jobs:
   build:
     strategy:
@@ -26,9 +24,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: dart-lang/setup-dart@v1
-
+      - name: Install dependencies
+        run: dart pub get
       - name: Compile rojanarch and all scaffolds
         shell: bash
         run: |
@@ -38,7 +36,6 @@ jobs:
             dart compile exe "scaffolds/create_structure_${state}.dart" \
               -o "dist/rojanarch_${state}${{ matrix.ext }}"
           done
-
       - name: Zip the bundle
         shell: bash
         run: |
@@ -48,7 +45,6 @@ jobs:
           else
             zip -r "../rojanarch-${{ matrix.asset_suffix }}.zip" .
           fi
-
       - name: Upload to the release
         uses: softprops/action-gh-release@v2
         with:
