@@ -1,0 +1,57 @@
+name: release
+
+# Builds native, no-Dart-required binaries for Linux, macOS, and Windows
+# and attaches them to a GitHub Release whenever you push a version tag,
+# e.g.:
+#   git tag v1.1.0 && git push origin v1.1.0
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset_suffix: linux-x64
+            ext: ''
+          - os: macos-latest
+            asset_suffix: macos-x64
+            ext: ''
+          - os: windows-latest
+            asset_suffix: windows-x64
+            ext: '.exe'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Compile rojanarch and all scaffolds
+        shell: bash
+        run: |
+          mkdir -p dist
+          dart compile exe bin/rojanarch.dart -o dist/rojanarch${{ matrix.ext }}
+          for state in bloc provider riverpod getx signals; do
+            dart compile exe "scaffolds/create_structure_${state}.dart" \
+              -o "dist/rojanarch_${state}${{ matrix.ext }}"
+          done
+
+      - name: Zip the bundle
+        shell: bash
+        run: |
+          cd dist
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            7z a "../rojanarch-${{ matrix.asset_suffix }}.zip" .
+          else
+            zip -r "../rojanarch-${{ matrix.asset_suffix }}.zip" .
+          fi
+
+      - name: Upload to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: rojanarch-${{ matrix.asset_suffix }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
