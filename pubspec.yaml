@@ -1,0 +1,17 @@
+name: rojanarch
+description: >
+  Interactive Flutter project scaffolder. Asks which state management
+  approach you want (BLoC, Provider, Riverpod, GetX, or Signals), creates
+  the Flutter project, and applies a Clean Architecture folder structure
+  for it.
+version: 1.1.0
+homepage: https://github.com/rojanparajuli13/rojanarch
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+# Declaring this makes `rojanarch` available as a global command after
+# `dart pub global activate` — see README.md for cross-platform install
+# instructions.
+executables:
+  rojanarch: rojanarch

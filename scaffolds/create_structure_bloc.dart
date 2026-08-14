@@ -1,7 +1,5 @@
 import 'dart:io';
 
-
-
 Future<void> main(List<String> args) async {
   if (args.contains('--help') || args.contains('-h')) {
     _printHelp();
@@ -13,19 +11,25 @@ Future<void> main(List<String> args) async {
   Logger.verboseEnabled = config.verbose;
 
   final stopwatch = Stopwatch()..start();
-  Logger.info("🚀 Starting Enhanced Dart BLoC Project Structure Setup...\n");
+  Logger.info(" Starting Enhanced Dart BLoC Project Structure Setup...\n");
 
   if (!config.dryRun) {
     if (!Directory("lib").existsSync()) {
-      Logger.error("❌ 'lib' folder not found. Run this from your Flutter project root. Script terminated.");
+      Logger.error(
+        " 'lib' folder not found. Run this from your Flutter project root. Script terminated.",
+      );
       exit(1);
     }
     if (!File("pubspec.yaml").existsSync()) {
-      Logger.error("❌ 'pubspec.yaml' not found. This doesn't look like a Flutter/Dart project root.");
+      Logger.error(
+        " 'pubspec.yaml' not found. This doesn't look like a Flutter/Dart project root.",
+      );
       exit(1);
     }
   } else {
-    Logger.warn("🧪 Dry-run mode enabled — no files or folders will actually be written.\n");
+    Logger.warn(
+      "🧪 Dry-run mode enabled — no files or folders will actually be written.\n",
+    );
   }
 
   final setupManager = ProjectSetupManager(config);
@@ -33,25 +37,41 @@ Future<void> main(List<String> args) async {
   try {
     await setupManager.setup();
     stopwatch.stop();
-    Logger.success("\n✅ Project setup completed successfully in ${_formatDuration(stopwatch.elapsed)}!");
-    Logger.info("\n📌 Next steps:");
+    Logger.success(
+      "\n Project setup completed successfully in ${_formatDuration(stopwatch.elapsed)}!",
+    );
+    Logger.info("\n Next steps:");
     Logger.info("   1. Run: flutter pub get");
-    Logger.info("   2. Run: dart run build_runner build --delete-conflicting-outputs");
-    Logger.info("      (generates injection_container.config.dart and app_router.gr.dart)");
-    Logger.info("   3. Open lib/core/di/injection_container.dart and register any manual dependencies");
-    Logger.info("   4. Open lib/core/router/app_router.dart and add your @RoutePage() routes");
-    Logger.info("   5. Check README.md and ARCHITECTURE.md for full project structure details");
+    Logger.info(
+      "   2. Run: dart run build_runner build --delete-conflicting-outputs",
+    );
+    Logger.info(
+      "      (generates injection_container.config.dart and app_router.gr.dart)",
+    );
+    Logger.info(
+      "   3. Open lib/core/di/injection_container.dart and register any manual dependencies",
+    );
+    Logger.info(
+      "   4. Open lib/core/router/app_router.dart and add your @RoutePage() routes",
+    );
+    Logger.info(
+      "   5. Check README.md and ARCHITECTURE.md for full project structure details",
+    );
   } catch (e, stackTrace) {
     stopwatch.stop();
-    Logger.error("\n❌ Setup failed after ${_formatDuration(stopwatch.elapsed)}: $e");
+    Logger.error(
+      "\n Setup failed after ${_formatDuration(stopwatch.elapsed)}: $e",
+    );
     if (config.verbose) Logger.error("Stack trace:\n$stackTrace");
 
     if (config.rollbackOnFailure && !config.dryRun) {
-      Logger.warn("\n↩️  Rolling back changes made during this run...");
+      Logger.warn("\n↩  Rolling back changes made during this run...");
       await setupManager.rollback();
       Logger.warn("Rollback complete.");
     } else if (!config.dryRun) {
-      Logger.warn("\nTip: re-run with --rollback to automatically undo partial changes on failure.");
+      Logger.warn(
+        "\nTip: re-run with --rollback to automatically undo partial changes on failure.",
+      );
     }
     exit(1);
   }
@@ -79,13 +99,12 @@ Options:
       --no-analysis     Skip generating analysis_options.yaml
       --dry-run         Show what would be created without writing anything
       --no-pub-upgrade  Skip running flutter pub get / pub upgrade after setup
-      --update-pubspec  Merge required dependencies directly into pubspec.yaml
+      --no-update-pubspec  Skip merging required dependencies into pubspec.yaml
       --no-color        Disable ANSI colored console output
       --rollback        Automatically delete created files/folders if setup fails
   -h, --help            Show this help message
 """);
 }
-
 
 class Logger {
   static bool colorEnabled = true;
@@ -111,7 +130,6 @@ class Logger {
   }
 }
 
-
 class ProjectConfig {
   final bool verbose;
   final bool skipExisting;
@@ -131,7 +149,7 @@ class ProjectConfig {
     this.setupCI = false,
     this.setupAnalysis = true,
     this.dryRun = false,
-    this.updatePubspec = false,
+    this.updatePubspec = true,
     this.runPubCommands = true,
     this.colorOutput = true,
     this.rollbackOnFailure = false,
@@ -145,7 +163,7 @@ class ProjectConfig {
       setupCI: args.contains('--ci'),
       setupAnalysis: !args.contains('--no-analysis'),
       dryRun: args.contains('--dry-run'),
-      updatePubspec: args.contains('--update-pubspec'),
+      updatePubspec: !args.contains('--no-update-pubspec'),
       runPubCommands: !args.contains('--no-pub-upgrade'),
       colorOutput: !args.contains('--no-color'),
       rollbackOnFailure: args.contains('--rollback'),
@@ -161,11 +179,10 @@ class ProjectSetupManager {
   int filesCreated = 0;
   int skipped = 0;
 
- 
   final List<_CreatedEntry> _created = [];
 
   ProjectSetupManager(this.config)
-      : projectName = Directory.current.path.split(Platform.pathSeparator).last;
+    : projectName = Directory.current.path.split(Platform.pathSeparator).last;
 
   Future<void> setup() async {
     await _setupCoreStructure();
@@ -190,6 +207,10 @@ class ProjectSetupManager {
 
     if (config.updatePubspec) {
       await _mergePubspecDependencies();
+    } else {
+      Logger.debug(
+        "skipping pubspec.yaml dependency merge (--no-update-pubspec)",
+      );
     }
 
     if (config.runPubCommands && !config.dryRun) {
@@ -203,10 +224,8 @@ class ProjectSetupManager {
     _printSummary();
   }
 
- 
-
   Future<void> _setupCoreStructure() async {
-    Logger.info("\n📁 Setting up core structure...");
+    Logger.info("\n Setting up core structure...");
 
     final coreStructure = <String, List<String>>{
       "lib/core/cache": ["store_cache.dart", "cache_manager.dart"],
@@ -272,35 +291,58 @@ class ProjectSetupManager {
     for (final entry in coreStructure.entries) {
       await _createFolder(entry.key);
       for (final file in entry.value) {
-        await _createFile("${entry.key}/$file", content: _generateFileContent(file));
+        await _createFile(
+          "${entry.key}/$file",
+          content: _generateFileContent(file),
+        );
       }
     }
   }
 
   Future<void> _setupDiAndRouting() async {
-    Logger.info("\n🧩 Setting up DI (get_it + injectable) and routing (auto_route)...");
+    Logger.info(
+      "\n Setting up DI (get_it + injectable) and routing (auto_route)...",
+    );
 
     await _createFolder("lib/core/di");
-    await _createFile("lib/core/di/injection_container.dart", content: _injectionContainerContent());
-    await _createFile("lib/core/di/register_module.dart", content: _registerModuleContent());
+    await _createFile(
+      "lib/core/di/injection_container.dart",
+      content: _injectionContainerContent(),
+    );
+    await _createFile(
+      "lib/core/di/register_module.dart",
+      content: _registerModuleContent(),
+    );
 
     await _createFolder("lib/core/router");
-    await _createFile("lib/core/router/app_router.dart", content: _appRouterContent());
+    await _createFile(
+      "lib/core/router/app_router.dart",
+      content: _appRouterContent(),
+    );
 
     await _createFolder("lib/core/router/guards");
-    await _createFile("lib/core/router/guards/auth_guard.dart", content: _authGuardContent());
-    await _createFile("lib/core/router/guards/guest_guard.dart", content: _guestGuardContent());
+    await _createFile(
+      "lib/core/router/guards/auth_guard.dart",
+      content: _authGuardContent(),
+    );
+    await _createFile(
+      "lib/core/router/guards/guest_guard.dart",
+      content: _guestGuardContent(),
+    );
   }
 
   Future<void> _setupFeaturesStructure() async {
-    Logger.info("\n🎯 Setting up features structure...");
+    Logger.info("\n Setting up features structure...");
 
     await _createFolder("lib/src/features");
-    await _createFile("lib/src/features/README.md", content: _featureReadmeContent());
+    await _createFile(
+      "lib/src/features/README.md",
+      content: _featureReadmeContent(),
+    );
   }
 
   Future<void> _setupAssets() async {
-    Logger.info("\n🎨 Setting up assets...");
+    Logger.info("\n Setting up assets...");
 
     final assetFolders = [
       "assets/images",
@@ -314,16 +356,25 @@ class ProjectSetupManager {
 
     for (final folder in assetFolders) {
       await _createFolder(folder);
-      await _createFile("$folder/.gitkeep", content: "# Keep this folder in version control\n");
+      await _createFile(
+        "$folder/.gitkeep",
+        content: "# Keep this folder in version control\n",
+      );
     }
   }
 
   Future<void> _setupConfigFiles() async {
-    Logger.info("\n⚙️  Setting up configuration files...");
+    Logger.info("\n Setting up configuration files...");
 
-    await _createFile("dependency_requirements.txt", content: _dependenciesContent());
+    await _createFile(
+      "dependency_requirements.txt",
+      content: _dependenciesContent(),
+    );
     await _createFolder("lib/core/config");
-    await _createFile("lib/core/config/env_config.dart", content: _envConfigContent());
+    await _createFile(
+      "lib/core/config/env_config.dart",
+      content: _envConfigContent(),
+    );
     await _createFile(".env.example", content: _envExampleContent());
     await _appendToGitignore();
     await _setupMyApp();
@@ -331,7 +382,7 @@ class ProjectSetupManager {
   }
 
   Future<void> _createSampleFeature() async {
-    Logger.info("\n🌟 Creating sample feature (auth)...");
+    Logger.info("\n Creating sample feature (auth)...");
 
     const featurePath = "lib/src/features/auth";
     final featureStructure = <String, List<String>>{
@@ -349,36 +400,46 @@ class ProjectSetupManager {
         "auth_event.dart",
         "auth_state.dart",
       ],
-      "$featurePath/presentation/views": ["login_screen.dart", "home_screen.dart"],
+      "$featurePath/presentation/views": [
+        "login_screen.dart",
+        "home_screen.dart",
+      ],
       "$featurePath/presentation/widgets": ["login_form.dart"],
     };
 
     for (final entry in featureStructure.entries) {
       await _createFolder(entry.key);
       for (final file in entry.value) {
-        await _createFile("${entry.key}/$file", content: _generateFeatureFileContent(file));
+        await _createFile(
+          "${entry.key}/$file",
+          content: _generateFeatureFileContent(file),
+        );
       }
     }
   }
 
   Future<void> _setupCI() async {
-    Logger.info("\n🔄 Setting up CI/CD...");
+    Logger.info("\nSetting up CI/CD...");
     await _createFolder(".github/workflows");
-    await _createFile(".github/workflows/flutter_ci.yml", content: _githubActionsContent());
+    await _createFile(
+      ".github/workflows/flutter_ci.yml",
+      content: _githubActionsContent(),
+    );
   }
 
   Future<void> _setupAnalysisOptions() async {
-    Logger.info("\n🔍 Setting up analysis options...");
-    await _createFile("analysis_options.yaml", content: _analysisOptionsContent());
+    Logger.info("\n Setting up analysis options...");
+    await _createFile(
+      "analysis_options.yaml",
+      content: _analysisOptionsContent(),
+    );
   }
 
   Future<void> _generateDocumentation() async {
-    Logger.info("\n📚 Generating documentation...");
+    Logger.info("\n Generating documentation...");
     await _createFile("README.md", content: _readmeContent());
     await _createFile("ARCHITECTURE.md", content: _architectureContent());
   }
-
- 
 
   Future<void> _createFolder(String path) async {
     final dir = Directory(path);
@@ -424,7 +485,6 @@ class ProjectSetupManager {
     Logger.debug("✓ ${isNew ? 'Created' : 'Overwrote'} file: $path");
   }
 
-  
   Future<void> rollback() async {
     for (final entry in _created.reversed) {
       try {
@@ -447,10 +507,8 @@ class ProjectSetupManager {
     }
   }
 
-  
-
   Future<void> _runPubCommands() async {
-    Logger.info("\n📦 Fetching dependencies...");
+    Logger.info("\n Fetching dependencies...");
     try {
       final getResult = await Process.run('flutter', ['pub', 'get']);
       if (getResult.exitCode == 0) {
@@ -467,13 +525,16 @@ class ProjectSetupManager {
         Logger.warn("⚠ flutter pub upgrade failed: ${upgradeResult.stderr}");
       }
     } on ProcessException catch (e) {
-      Logger.warn("⚠ Could not run flutter commands (is Flutter on your PATH?): ${e.message}");
+      Logger.warn(
+        "⚠ Could not run flutter commands (is Flutter on your PATH?): ${e.message}",
+      );
     }
   }
 
- 
   Future<void> _mergePubspecDependencies() async {
-    Logger.info("\n📝 Merging dependencies into pubspec.yaml...");
+    Logger.info(
+      "\n Checking pubspec.yaml and merging required dependencies...",
+    );
 
     final pubspec = File("pubspec.yaml");
     if (!pubspec.existsSync()) {
@@ -509,7 +570,9 @@ class ProjectSetupManager {
     };
 
     if (config.dryRun) {
-      Logger.debug("would merge ${deps.length} dependencies and ${devDeps.length} dev dependencies");
+      Logger.debug(
+        "would merge ${deps.length} dependencies and ${devDeps.length} dev dependencies into pubspec.yaml",
+      );
       return;
     }
 
@@ -518,12 +581,16 @@ class ProjectSetupManager {
     final addedDevDeps = <String>{};
 
     final finalLines = <String>[];
+    var sawDependencies = false;
+    var sawDevDependencies = false;
+
     for (var i = 0; i < lines.length; i++) {
       final line = lines[i];
       finalLines.add(line);
       final trimmed = line.trimRight();
 
       if (trimmed == 'dependencies:') {
+        sawDependencies = true;
         for (final e in deps.entries) {
           final already = lines.any((l) => l.trim().startsWith('${e.key}:'));
           if (!already) {
@@ -532,6 +599,7 @@ class ProjectSetupManager {
           }
         }
       } else if (trimmed == 'dev_dependencies:') {
+        sawDevDependencies = true;
         for (final e in devDeps.entries) {
           final already = lines.any((l) => l.trim().startsWith('${e.key}:'));
           if (!already) {
@@ -542,14 +610,43 @@ class ProjectSetupManager {
       }
     }
 
+    if (!sawDependencies) {
+      finalLines.add('dependencies:');
+      for (final e in deps.entries) {
+        finalLines.add('  ${e.key}: ${e.value}');
+        addedDeps.add(e.key);
+      }
+    }
+    if (!sawDevDependencies) {
+      finalLines.add('dev_dependencies:');
+      for (final e in devDeps.entries) {
+        finalLines.add('  ${e.key}: ${e.value}');
+        addedDevDeps.add(e.key);
+      }
+    }
+
     if (addedDeps.isEmpty && addedDevDeps.isEmpty) {
-      Logger.info("Nothing to merge — all required dependencies already present.");
+      Logger.info(
+        "Nothing to merge — all required dependencies already present in pubspec.yaml.",
+      );
       return;
     }
 
     await pubspec.writeAsString(finalLines.join('\n') + '\n');
-    Logger.success("✓ Added ${addedDeps.length} dependencies and ${addedDevDeps.length} dev dependencies to pubspec.yaml");
-    Logger.warn("⚠ Please review pubspec.yaml — this was a best-effort text merge, not full YAML parsing.");
+
+    if (addedDeps.isNotEmpty) {
+      Logger.success(
+        "✓ Added ${addedDeps.length} dependencies to pubspec.yaml: ${addedDeps.join(', ')}",
+      );
+    }
+    if (addedDevDeps.isNotEmpty) {
+      Logger.success(
+        "✓ Added ${addedDevDeps.length} dev dependencies to pubspec.yaml: ${addedDevDeps.join(', ')}",
+      );
+    }
+    Logger.warn(
+      "⚠ Please review pubspec.yaml — this was a best-effort text merge, not full YAML parsing.",
+    );
   }
 
   Future<void> _writeSetupSummaryJson() async {
@@ -570,7 +667,7 @@ class ProjectSetupManager {
   void _printSummary() {
     final divider = "=" * 50;
     Logger.info("\n$divider");
-    Logger.info("📊 Setup Summary");
+    Logger.info(" Setup Summary");
     Logger.info(divider);
     Logger.info("  Folders created : $foldersCreated");
     Logger.info("  Files created   : $filesCreated");
@@ -579,8 +676,6 @@ class ProjectSetupManager {
     Logger.info("  Routing         : auto_route (+ guards)");
     Logger.info(divider);
   }
-
-  
 
   String _generateFileContent(String fileName) {
     if (fileName.contains("extensions.dart")) {
@@ -723,7 +818,7 @@ abstract class RegisterModule {
   AppRouter get appRouter => AppRouter();
 }
 """;
-    }
+  }
 
   String _appRouterContent() {
     return """import 'package:auto_route/auto_route.dart';
@@ -1305,7 +1400,8 @@ flutter_svg: ^2.0.10
 intl: ^0.19.0
 logger: ^2.3.0
 
-# Run with --update-pubspec to merge these into pubspec.yaml automatically.
+# These are merged into pubspec.yaml automatically during setup
+# (pass --no-update-pubspec to skip).
 """;
   }
 
@@ -1554,7 +1650,8 @@ Presentation → Domain ← Data
     await _createFolder("lib/src/my_app");
     await _createFile(
       "lib/src/my_app/my_app.dart",
-      content: """import 'package:flutter/material.dart';
+      content:
+          """import 'package:flutter/material.dart';
 
 import '../../core/di/injection_container.dart';
 import '../../core/router/app_router.dart';
@@ -1636,7 +1733,8 @@ void main() {
     if (!content.contains('*.g.dart')) additions.add('*.g.dart');
     if (!content.contains('*.gr.dart')) additions.add('*.gr.dart');
     if (!content.contains('*.config.dart')) additions.add('*.config.dart');
-    if (!content.contains('setup_summary.json')) additions.add('setup_summary.json');
+    if (!content.contains('setup_summary.json'))
+      additions.add('setup_summary.json');
 
     if (additions.isEmpty) return;
 
